@@ -93,7 +93,7 @@ scripts/
 └── main.gd          # Game initialization
 ```
 
-## 🎮 Getting Started
+## 🎮 Getting Started (This is just for reference. Clearly this won't work yet)
 1. Clone the repository
 2. Open the project in Godot Engine
 3. Run the main scene
