@@ -1,0 +1,304 @@
+# TỔNG QUAN HỆ THỐNG GAME CHIẾN ĐẤU THEO LƯỢT
+
+## 1. CẤU TRÚC THƯ MỤC
+```
+scripts/
+├── character.gd      # Quản lý nhân vật và kỹ năng
+├── battle_manager.gd # Quản lý trận đấu
+├── battle_ui.gd      # Giao diện người dùng
+└── main.gd          # Khởi tạo game
+```
+
+## 2. HỆ THỐNG NHÂN VẬT (character.gd)
+
+### 2.1. Loại Nhân Vật (CharacterType)
+- Đội Người Chơi:
+  - FIGHTER: Chiến binh, sát thương cao, tỷ lệ chí mạng cao
+  - MAGE: Pháp sư, sát thương phép thuật cao
+  - ARCHER: Cung thủ, tốc độ cao, nhiều đòn đánh
+  - TANK: Tăng phòng thủ, HP cao
+  - BUFFER: Hỗ trợ tăng sức mạnh đồng đội
+  - HEALER: Hỗ trợ hồi máu
+  - DEBUFFER: Gây hiệu ứng xấu cho kẻ địch
+  - SPECIAL: Nhân vật đặc biệt
+
+- Đội Quái Vật:
+  - NORMAL_MONSTER: Quái vật thường
+  - ELITE_MONSTER: Quái vật tinh nhuệ
+  - BOSS_MONSTER: Quái vật trùm
+
+### 2.2. Thuộc Tính Cơ Bản
+- HP (Máu)
+- Attack (Tấn công)
+- Defense (Phòng thủ)
+- Speed (Tốc độ)
+
+### 2.3. Thuộc Tính Đặc Biệt
+- Healing Power: Sức mạnh hồi máu
+- Buff Power: Sức mạnh tăng buff
+- Debuff Power: Sức mạnh gây debuff
+- Effect Hit Rate: Tỷ lệ trúng hiệu ứng
+- Effect Resistance: Kháng hiệu ứng
+- Shield Power: Sức mạnh khiên
+- Energy Efficiency: Hiệu suất hồi năng lượng
+
+### 2.4. Hệ Thống Chí Mạng
+- Crit Rate: Tỷ lệ chí mạng (mặc định 5%)
+- Crit Damage: Sát thương chí mạng (mặc định 50%)
+
+### 2.5. Hệ Thống Năng Lượng
+- Max Energy: 100 (mặc định)
+- Energy Gain Sources:
+  * Normal Attack: +20
+  * Skill Attack: +30
+  * Light Hit: +5
+  * Heavy Hit: +10
+- Energy Costs:
+  * Normal Attack: 0
+  * Skill: 0
+  * Ultimate: 100
+
+### 2.6. Hệ Thống Điểm Kỹ Năng
+- Max Skill Points: 5
+- Starting Skill Points: 3
+- Skill Point Costs:
+  * Normal Attack: 0
+  * Skill: 1
+  * Ultimate: 0
+- Skill Point Gain:
+  * Normal Attack: +1
+
+### 2.7. Hệ Thống Aggro
+- Base Aggro: 1.0
+- Aggro Modifiers:
+  * Taunt: x2.0
+  * Tank Base: 1.5
+  * Fighter Base: 1.3
+  * Healer Base: 1.2
+  * Buffer Base: 1.1
+  * Mage Base: 0.9
+  * Archer Base: 0.7
+
+### 2.8. Hệ Thống Kỹ Năng
+Mỗi nhân vật có 3 kỹ năng:
+1. Normal Attack (Đòn đánh thường):
+   - Không tốn điểm kỹ năng
+   - Hồi 1 điểm kỹ năng
+   - Hồi 20 năng lượng
+   - Single hit lên 1 mục tiêu địch
+
+2. Skill (Kỹ năng đặc biệt):
+   - Tốn 1 điểm kỹ năng
+   - Hồi 30 năng lượng
+   - Có hiệu ứng đặc biệt
+   - Mục tiêu tùy theo loại nhân vật:
+     * FIGHTER: Đánh mục tiêu địch và 2 mục tiêu liền kề (1.8x, 2 hits)
+     * MAGE: Đánh 1 mục tiêu địch và bounce 2 lần (2.0x, +0.2x mỗi bounce)
+     * ARCHER: Đánh 1 mục tiêu địch 3 lần (1.2x, +0.1x mỗi hit)
+     * TANK: Đánh 1 mục tiêu địch (thêm hiệu ứng giảm sát thương)
+     * BUFFER: Tăng sức mạnh cho 1 đồng đội (+20 ATK)
+     * HEALER: Hồi máu cho 1 đồng đội (+30 HP)
+     * DEBUFFER: Giảm sức mạnh 1 mục tiêu địch (-20 ATK)
+
+3. Ultimate (Kỹ năng tối thượng):
+   - Tốn 100 năng lượng
+   - Hiệu ứng mạnh nhất
+   - Mục tiêu tùy theo loại nhân vật:
+     * FIGHTER: Đánh tất cả mục tiêu địch 3 lần (2.2x)
+     * MAGE: Đánh tất cả mục tiêu địch 5 lần (1.8x, +0.3x)
+     * ARCHER: Đánh tất cả mục tiêu địch 7 lần (1.5x, +0.15x)
+     * TANK: Đánh 1 mục tiêu địch (thêm hiệu ứng phản đòn)
+     * BUFFER: Tăng sức mạnh cho tất cả đồng đội (+15 ATK)
+     * HEALER: Hồi máu cho tất cả đồng đội (+20 HP)
+     * DEBUFFER: Giảm sức mạnh tất cả mục tiêu địch (-15 ATK)
+
+### 2.9. Hệ Thống Trang Bị
+1. Vị Trí Trang Bị:
+   - HELMET (Mũ)
+   - GLOVES (Găng tay)
+   - ARMOR (Áo giáp)
+   - BOOTS (Giày)
+   - MAGIC_GEM (Ngọc phép thuật)
+   - MAGIC_NECKLACE (Dây chuyền phép thuật)
+
+2. Chỉ Số Chính:
+   - FLAT_ATTACK: Tăng tấn công theo số
+   - FLAT_HP: Tăng máu theo số
+   - PERCENT_ATTACK: Tăng tấn công theo %
+   - PERCENT_HP: Tăng máu theo %
+   - PERCENT_DEFENSE: Tăng phòng thủ theo %
+   - EFFECT_HIT_RATE: Tăng tỉ lệ trúng hiệu ứng
+   - CRIT_RATE: Tăng tỉ lệ chí mạng
+   - CRIT_DAMAGE: Tăng sát thương chí mạng
+   - SPEED: Tăng tốc độ theo số
+   - SHIELD_POWER: Tăng lượng khiên cung cấp theo %
+   - HEALING_POWER: Tăng lượng hồi máu theo %
+   - ENERGY_EFFICIENCY: Tăng hiệu suất hồi năng lượng
+
+3. Chỉ Số Phụ:
+   - Chuẩn bị cho 4 chỉ số phụ mỗi trang bị
+   - Không trùng với chỉ số chính
+   - Có thể thêm mới trong tương lai
+
+4. Set Bonus:
+   - Chuẩn bị cho hệ thống set bonus
+   - Chưa triển khai chi tiết
+
+### 2.10. Công Thức Tính Sát Thương
+```
+Base DMG = (Skill Multiplier + Extra Multiplier) × Scaling Attribute + Extra DMG
+Final DMG = Base DMG × (1 + Equipment Bonuses)
+```
+
+### 2.11. Hệ Thống Hiệu Ứng
+- Công thức tính tỷ lệ trúng hiệu ứng:
+  ```
+  Real Chance = Base Chance × (1 + Effect Hit Rate) × (1 − Effect RES)
+  ```
+
+- Thời gian hiệu ứng:
+  * Buff:
+    - Tăng ATK: 2 hiệp
+    - Tăng DEF: 2 hiệp
+    - Tăng SPD: 2 hiệp
+    - Tăng Crit Rate: 2 hiệp
+    - Tăng Crit DMG: 2 hiệp
+    - Tăng Effect Hit Rate: 2 hiệp
+    - Tăng Effect Resistance: 2 hiệp
+    - Ultimate Buff: 3 hiệp
+
+  * Debuff:
+    - Giảm ATK: 2 hiệp
+    - Giảm DEF: 2 hiệp
+    - Giảm SPD: 2 hiệp
+    - Giảm Crit Rate: 2 hiệp
+    - Giảm Crit DMG: 2 hiệp
+    - Giảm Effect Hit Rate: 2 hiệp
+    - Giảm Effect Resistance: 2 hiệp
+    - Ultimate Debuff: 3 hiệp
+
+  * Hiệu ứng đặc biệt:
+    - Stun: 1 hiệp
+    - Poison: 3 hiệp (mỗi hiệp mất 5% HP)
+    - Bleed: 2 hiệp (mỗi hiệp mất 3% HP)
+    - Burn: 2 hiệp (mỗi hiệp mất 4% HP)
+    - Freeze: 1 hiệp
+    - Silence: 2 hiệp (không thể dùng kỹ năng)
+    - Taunt: 2 hiệp (bắt buộc tấn công mục tiêu)
+
+- Cơ chế Reapply (Áp dụng lại hiệu ứng):
+  * Khi một hiệu ứng đang active và bị áp dụng lại:
+    - Thời gian hiệu ứng sẽ được reset về thời gian ban đầu
+    - Giá trị hiệu ứng sẽ được cập nhật nếu khác với giá trị cũ
+    - Nếu giá trị mới thấp hơn, giữ nguyên giá trị cũ
+    - Nếu giá trị mới cao hơn, cập nhật lên giá trị mới
+
+- Cơ chế Stack (Chồng hiệu ứng):
+  * Một số hiệu ứng có thể stack (chồng lên nhau):
+    - Poison: Stack tối đa 3 lần, mỗi stack +5% sát thương
+    - Bleed: Stack tối đa 3 lần, mỗi stack +3% sát thương
+    - Burn: Stack tối đa 3 lần, mỗi stack +4% sát thương
+    - Buff/Debuff ATK/DEF: Stack tối đa 2 lần
+    - Các hiệu ứng khác không stack, chỉ reapply
+
+- Cơ chế Cleanse (Xóa hiệu ứng):
+  * Một số kỹ năng có thể xóa hiệu ứng:
+    - Cleanse: Xóa tất cả debuff
+    - Purify: Xóa tất cả buff và debuff
+    - Dispel: Xóa tất cả buff của địch
+    - Ultimate Cleanse: Xóa tất cả debuff của toàn đội
+
+## 3. QUẢN LÝ TRẬN ĐẤU (battle_manager.gd)
+
+### 3.1. Thứ Tự Lượt
+- Dựa trên tốc độ của nhân vật
+- Tốc độ cao đi trước
+- Bỏ qua lượt của nhân vật đã chết
+
+### 3.2. Điều Kiện Kết Thúc
+- Một đội bị tiêu diệt hoàn toàn
+- Đội còn lại chiến thắng
+
+### 3.3. Chọn Mục Tiêu
+- Có thể chọn mục tiêu đơn lẻ
+- Có thể chọn mục tiêu liền kề
+- Có thể chọn tất cả mục tiêu
+- Có thể chọn mục tiêu ngẫu nhiên (bounce)
+- Hệ thống aggro ảnh hưởng đến việc chọn mục tiêu
+
+## 4. GIAO DIỆN NGƯỜI DÙNG (battle_ui.gd)
+
+### 4.1. Hiển Thị Thông Tin
+- HP của tất cả nhân vật
+- Lượt hiện tại
+- Nhật ký trận đấu
+- Năng lượng và điểm kỹ năng
+- Hiệu ứng đang active
+
+### 4.2. Nút Điều Khiển
+- Nút tấn công thường
+- Nút kỹ năng đặc biệt
+- Nút kỹ năng tối thượng
+- Nút chọn mục tiêu
+
+### 4.3. Nhật Ký Trận Đấu
+- Ghi lại mọi hành động
+- Hiển thị sát thương
+- Hiển thị hiệu ứng
+- Thông báo kết thúc
+
+## 5. KHỞI TẠO GAME (main.gd)
+
+### 5.1. Đội Người Chơi
+- Warrior: 120 HP, 18 ATK, 12 DEF, 8 SPD
+- Mage: 90 HP, 25 ATK, 6 DEF, 7 SPD
+- Archer: 100 HP, 15 ATK, 8 DEF, 12 SPD
+- Tank: 150 HP, 10 ATK, 20 DEF, 5 SPD
+- Buffer: 80 HP, 8 ATK, 8 DEF, 9 SPD
+
+### 5.2. Đội Quái Vật
+- Normal Monsters:
+  - Goblin: 60 HP, 12 ATK, 5 DEF, 10 SPD
+  - Skeleton: 70 HP, 10 ATK, 8 DEF, 8 SPD
+  - Orc: 100 HP, 15 ATK, 10 DEF, 6 SPD
+- Elite Monsters:
+  - Elite Goblin Shaman: 120 HP, 20 ATK, 12 DEF, 9 SPD
+  - Skeleton Knight: 150 HP, 18 ATK, 15 DEF, 7 SPD
+- Boss Monster:
+  - Ancient Dragon: 300 HP, 30 ATK, 25 DEF, 10 SPD
+
+## 6. HƯỚNG PHÁT TRIỂN
+
+### 6.1. Tính Năng Đã Thêm
+- Hệ thống năng lượng
+- Hệ thống điểm kỹ năng
+- Hệ thống aggro
+- Hệ thống trang bị
+- Hệ thống hiệu ứng phức tạp
+- Hệ thống tính sát thương chi tiết
+
+### 6.2. Tính Năng Có Thể Thêm
+- Hệ thống level và kinh nghiệm
+- Hệ thống kỹ năng bị động
+- Hệ thống combo
+- Hệ thống hiệu ứng thời tiết
+- Hệ thống terrain (địa hình)
+- Hệ thống set bonus cho trang bị
+- Hệ thống nâng cấp trang bị
+
+### 6.3. Cân Bằng Game
+- Điều chỉnh chỉ số nhân vật
+- Điều chỉnh tỷ lệ chí mạng
+- Điều chỉnh sức mạnh kỹ năng
+- Điều chỉnh hệ số sát thương
+- Điều chỉnh hệ thống năng lượng
+- Điều chỉnh hệ thống aggro
+
+### 6.4. Cải Thiện UI
+- Thêm animation
+- Thêm hiệu ứng âm thanh
+- Thêm biểu tượng trạng thái
+- Thêm thanh máu động
+- Thêm hiệu ứng đánh trúng
+- Thêm giao diện trang bị
+- Thêm thông tin chi tiết về kỹ năng 
